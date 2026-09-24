@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+#define SHM_NAME "shmfile"
+#define NUM_MARKS 5
+
+int main()
+{
+    key_t key;
+    int shmid;
+    int *marks;
+    int sum = 0;
+    float average;
+
+    /* Generate the same key */
+    key = ftok(SHM_NAME, 65);
+
+    if (key == -1)
+    {
+        perror("ftok");
+        exit(1);
+    }
+
+    /* Get or create shared memory */
+    shmid = shmget(key, NUM_MARKS * sizeof(int), 0666 | IPC_CREAT);
+
+    if (shmid == -1)
+    {
+        perror("shmget");
+        exit(1);
+    }
+
+    /* Attach shared memory */
+    marks = (int *)shmat(shmid, NULL, 0);
+
+    if (marks == (int *)-1)
+    {
+        perror("shmat");
+        exit(1);
+    }
+
+    /* Read marks */
+    printf("Enter %d marks:\n", NUM_MARKS);
+
+    for (int i = 0; i < NUM_MARKS; i++)
+    {
+        printf("Mark %d: ", i + 1);
+        scanf("%d", &marks[i]);
+        sum += marks[i];
+    }
+
+    average = (float)sum / NUM_MARKS;
+
+    printf("Marks stored in shared memory successfully.\n");
+    printf("Average = %.2f\n", average);
+
+    /* Detach shared memory */
+    shmdt(marks);
+
+    return 0;
+}
